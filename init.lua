@@ -34,6 +34,12 @@ require('packer').startup(function(use)
     requires = 'nvim-tree/nvim-web-devicons'
   }
 
+  -- Markdown preview plugin
+  use({
+    "iamcco/markdown-preview.nvim",
+    run = "cd app && npm install",  -- install dependencies
+    ft = { "markdown" },             -- load only for markdown files
+  })
 end)
 
 -- =========================
