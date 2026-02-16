@@ -1,13 +1,15 @@
--- ~/.config/nvim/init.lua (fresh)
+-- ~/.config/nvim/init.lua
 -- Complete Neovim config with: lazy.nvim bootstrap, Neo-tree, Telescope, Treesitter,
--- LSP (pyright, rust-analyzer, starpls), cmp, lualine, gitsigns,
--- Sonoran Sun theme, Conform formatting, and terminal QoL.
+-- LSP, cmp, lualine, gitsigns, Sonoran Sun theme, Conform formatting, and terminal QoL.
 
 ------------------------------------------------------------
 -- 0) Leader & Basic Options
 ------------------------------------------------------------
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
+
+-- Define map helper globally for the whole file
+local map = vim.keymap.set
 
 -- Use your login shell so terminals inherit your profile (zsh/bash/etc.)
 vim.opt.shell = vim.env.SHELL or vim.o.shell
@@ -30,7 +32,8 @@ vim.opt.splitright = true
 -- 1) Bootstrap lazy.nvim
 ------------------------------------------------------------
 local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
-if not vim.loop.fs_stat(lazypath) then
+-- Note: vim.loop is deprecated in 0.10+, replaced by vim.uv
+if not (vim.uv or vim.loop).fs_stat(lazypath) then
 	vim.fn.system({
 		'git', 'clone', '--filter=blob:none',
 		'https://github.com/folke/lazy.nvim.git', '--branch=stable', lazypath
@@ -47,7 +50,7 @@ require('lazy').setup({
 	{ 'lewis6991/gitsigns.nvim' },
 
 	-- Themes
-	{ 'catppuccin/nvim',           name = 'catppuccin' }, -- fallback
+	{ 'catppuccin/nvim',           name = 'catppuccin' },
 
 	-- File explorer: Neo-tree
 	{
@@ -66,8 +69,6 @@ require('lazy').setup({
 			require('neo-tree').setup({
 				sources = { 'filesystem', 'buffers', 'git_status', 'document_symbols' },
 				close_if_last_window = true,
-				enable_git_status = true,
-				enable_diagnostics = true,
 				filesystem = {
 					follow_current_file = { enabled = true },
 					use_libuv_file_watcher = true,
@@ -83,19 +84,9 @@ require('lazy').setup({
 						['<space>'] = 'toggle_node',
 						['l'] = 'open',
 						['h'] = 'close_node',
-						['P'] = { 'toggle_preview', config = { use_float = true } },
 					},
 				},
-				default_component_configs = {
-					indent = { with_markers = true, indent_size = 2 },
-					git_status = { symbols = { added = 'A', modified = 'M', deleted = 'D', renamed = 'R' } },
-					diagnostics = { symbols = { hint = 'H', info = 'I', warn = 'W', error = 'E' } },
-				},
 			})
-			local map_local = vim.keymap.set
-			-- We'll override <leader>e later with a smarter function
-			map_local('n', '<leader>e', '<cmd>Neotree toggle<CR>', { desc = 'Neo-tree: toggle' })
-			map_local('n', '<leader>E', '<cmd>Neotree reveal<CR>', { desc = 'Neo-tree: reveal file' })
 		end,
 	},
 
@@ -106,7 +97,7 @@ require('lazy').setup({
 	{ 'nvim-treesitter/nvim-treesitter',          build = ':TSUpdate' },
 
 	-- LSP + Mason + Completion
-	{ 'neovim/nvim-lspconfig' }, -- kept for compatibility; we don't call require('lspconfig') here
+	{ 'neovim/nvim-lspconfig' },
 	{ 'williamboman/mason.nvim' },
 	{ 'williamboman/mason-lspconfig.nvim' },
 
@@ -136,19 +127,11 @@ require('lazy').setup({
 ------------------------------------------------------------
 -- 3) Plugin Config
 ------------------------------------------------------------
--- Theme (prefer Sonoran Sun, fallback to Catppuccin)
-vim.g.sonoran_sun_variant = "hot" -- "hot", "dark", or "light"
-
-vim.o.termguicolors = true
-vim.cmd.colorscheme("sonoran-day")
-
-vim.api.nvim_create_user_command('Sonoran', function(opts)
-	vim.g.sonoran_sun_variant = opts.args
-	vim.cmd.colorscheme('sonoran-day')
-end, {
-	nargs = 1,
-	complete = function() return { 'hot', 'dark', 'light' } end,
-})
+-- Theme
+vim.g.sonoran_sun_variant = "hot"
+-- If sonoran-day is not installed, this will error.
+-- Ensure you have the plugin or fallback to catppuccin.
+pcall(vim.cmd.colorscheme, "sonoran-day")
 
 -- Lualine
 require('lualine').setup({ options = { theme = 'auto', globalstatus = true } })
@@ -157,7 +140,6 @@ require('lualine').setup({ options = { theme = 'auto', globalstatus = true } })
 require('gitsigns').setup()
 
 -- Telescope keymaps
-local map = vim.keymap.set
 map('n', '<leader>ff', '<cmd>Telescope find_files<CR>', { desc = 'Find files' })
 map('n', '<leader>fg', '<cmd>Telescope live_grep<CR>', { desc = 'Live grep' })
 map('n', '<leader>fb', '<cmd>Telescope buffers<CR>', { desc = 'Buffers' })
@@ -166,9 +148,9 @@ map('n', '<leader>fh', '<cmd>Telescope help_tags<CR>', { desc = 'Help' })
 -- Treesitter
 require('nvim-treesitter.configs').setup({
 	ensure_installed = {
-		'lua', 'vim', 'vimdoc', 'query',
-		'bash', 'python', 'json', 'yaml', 'markdown', 'markdown_inline',
-		'javascript', 'typescript', 'tsx', 'html', 'css', 'rust'
+		'lua', 'vim', 'vimdoc', 'query', 'bash', 'python', 'json',
+		'yaml', 'markdown', 'markdown_inline', 'javascript', 'typescript',
+		'tsx', 'html', 'css', 'rust'
 	},
 	highlight = { enable = true },
 	indent = { enable = true },
@@ -178,18 +160,39 @@ require('nvim-treesitter.configs').setup({
 require('which-key').setup({})
 
 ------------------------------------------------------------
--- 4) LSP (Neovim 0.11+ API) + Completion
+-- 4) LSP Configuration & UI Overlap Fix
 ------------------------------------------------------------
+
+-- FIX: Configure Diagnostics to not overlap text automatically
+vim.diagnostic.config({
+	-- Show "ghost text" at the end of the line (non-intrusive)
+	virtual_text = {
+		prefix = '●', -- Could use '■', '▎', 'x'
+	},
+	-- Don't update while typing (reduces noise)
+	update_in_insert = false,
+	-- Enable underline
+	underline = true,
+	-- FIX: Configure the floating window
+	float = {
+		border = 'rounded',
+		source = 'always',
+		header = '',
+		prefix = '',
+	},
+})
+
+-- We do NOT add a CursorHold autocommand here.
+-- This prevents the popup from blocking your view automatically.
+-- Instead, use <leader>d (configured below) to see the full message.
+
 require('mason').setup()
 require('mason-lspconfig').setup({
 	ensure_installed = { 'pyright', 'lua_ls', 'rust_analyzer', 'starpls' },
 })
 
--- Ensure non-LSP tools (formatters) via Mason Tool Installer
 require('mason-tool-installer').setup({
-	ensure_installed = {
-		'buildifier', -- Bazel/Starlark formatter
-	},
+	ensure_installed = { 'buildifier' },
 	auto_update = false,
 	run_on_start = true,
 })
@@ -197,8 +200,13 @@ require('mason-tool-installer').setup({
 -- nvim-cmp setup
 local cmp = require('cmp')
 local luasnip = require('luasnip')
+
 cmp.setup({
 	snippet = { expand = function(args) luasnip.lsp_expand(args.body) end },
+	window = {
+		completion = cmp.config.window.bordered(),
+		documentation = cmp.config.window.bordered(),
+	},
 	mapping = cmp.mapping.preset.insert({
 		['<C-Space>'] = cmp.mapping.complete(),
 		['<CR>']      = cmp.mapping.confirm({ select = true }),
@@ -224,79 +232,49 @@ cmp.setup({
 	sources = { { name = 'nvim_lsp' }, { name = 'path' }, { name = 'buffer' }, { name = 'luasnip' } },
 })
 
--- Capabilities for LSP completion
 local capabilities = require('cmp_nvim_lsp').default_capabilities()
 
--- Shared on_attach
 local function on_attach(_, bufnr)
 	local bmap = function(mode, lhs, rhs, desc)
 		vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, desc = 'LSP: ' .. desc })
 	end
 	bmap('n', 'gd', vim.lsp.buf.definition, 'Goto Definition')
 	bmap('n', 'gr', require('telescope.builtin').lsp_references, 'References')
-	bmap('n', 'gi', vim.lsp.buf.implementation, 'Goto Implementation')
-	bmap('n', 'K', vim.lsp.buf.hover, 'Hover')
+	bmap('n', 'K', vim.lsp.buf.hover, 'Hover Documentation')
 	bmap('n', '<leader>rn', vim.lsp.buf.rename, 'Rename')
 	bmap('n', '<leader>ca', vim.lsp.buf.code_action, 'Code Action')
+	-- FIX: Open the diagnostic float manually
+	bmap('n', '<leader>d', vim.diagnostic.open_float, 'Show Line Diagnostics')
 	bmap('n', '<leader>sd', require('telescope.builtin').diagnostics, 'Search Diagnostics')
 end
 
--- Define server configs using the new API
-vim.lsp.config['pyright'] = {
-	capabilities = capabilities,
-	on_attach = on_attach,
-}
-
+vim.lsp.config['pyright'] = { capabilities = capabilities, on_attach = on_attach }
+vim.lsp.config['rust_analyzer'] = { capabilities = capabilities, on_attach = on_attach }
+vim.lsp.config['starpls'] = { capabilities = capabilities, on_attach = on_attach, cmd = { 'starpls' }, filetypes = { 'bzl', 'bazel' } }
 vim.lsp.config['lua_ls'] = {
 	capabilities = capabilities,
 	on_attach = on_attach,
-	settings = {
-		Lua = {
-			diagnostics = { globals = { 'vim' } },
-			workspace = { checkThirdParty = false },
-		},
-	},
+	settings = { Lua = { diagnostics = { globals = { 'vim' } }, workspace = { checkThirdParty = false } } },
 }
 
-vim.lsp.config['rust_analyzer'] = {
-	capabilities = capabilities,
-	on_attach = on_attach,
-}
-
--- Starlark via starpls (Bazel/Buck2)
-vim.lsp.config['starpls'] = {
-	capabilities = capabilities,
-	on_attach = on_attach,
-	cmd = { 'starpls' }, -- provided by Mason package "starpls"
-	filetypes = { 'bzl', 'bazel' },
-}
-
--- Enable the servers explicitly (avoids deprecated lspconfig.setup)
 vim.lsp.enable({ 'pyright', 'lua_ls', 'rust_analyzer', 'starpls' })
 
 ------------------------------------------------------------
 -- 4.1) Formatting via Conform
 ------------------------------------------------------------
--- Uses buildifier for Bazel/Starlark and rustfmt for Rust
 require('conform').setup({
 	formatters_by_ft = {
 		bzl   = { 'buildifier' },
 		bazel = { 'buildifier' },
 		rust  = { 'rustfmt' },
 	},
-	format_on_save = {
-		lsp_fallback = true,
-		timeout_ms = 1000,
-	},
+	format_on_save = { lsp_fallback = true, timeout_ms = 1000 },
 })
--- NOTE: rustfmt is provided by Rust toolchain:
---   curl -fsSL https://sh.rustup.rs | sh
---   rustup component add rustfmt
 
 ------------------------------------------------------------
--- 5) Terminal QoL & Window Navigation
+-- 5) Terminal QoL (FIXED)
 ------------------------------------------------------------
--- Auto-enter insert mode in any terminal buffer; hide line numbers
+-- Auto-enter insert mode
 vim.api.nvim_create_autocmd('TermOpen', {
 	pattern = '*',
 	callback = function()
@@ -306,42 +284,40 @@ vim.api.nvim_create_autocmd('TermOpen', {
 	end,
 })
 
--- Escape to leave terminal-mode quickly
 map('t', '<Esc>', [[<C-\><C-n>]], { desc = 'Exit terminal mode' })
 
--- <leader>h: 12-line horizontal terminal split using your login shell (loads your profile)
+-- FIX: Robust Terminal Opening using termopen + enew
 map('n', '<leader>h', function()
-	local shell = (vim.env.SHELL or vim.o.shell) .. ' -l'
+	local shell_path = vim.env.SHELL or vim.o.shell
 	vim.cmd('belowright 12split')
-	vim.cmd('terminal ' .. shell)
-	vim.cmd('startinsert')
-end, { desc = 'Horizontal terminal (same profile)' })
+	vim.cmd('enew') -- Force new buffer to avoid Neo-tree conflicts
+	vim.fn.termopen({ shell_path, "-l" })
+end, { desc = 'Horizontal terminal' })
 
--- Optional: vertical terminal on <leader>v
 map('n', '<leader>v', function()
-	local shell = (vim.env.SHELL or vim.o.shell) .. ' -l'
+	local shell_path = vim.env.SHELL or vim.o.shell
 	vim.cmd('vsplit')
-	vim.cmd('terminal ' .. shell)
-	vim.cmd('startinsert')
-end, { desc = 'Vertical terminal (same profile)' })
+	vim.cmd('enew')
+	vim.fn.termopen({ shell_path, "-l" })
+end, { desc = 'Vertical terminal' })
 
--- Refocus helpers
+-- Navigation
 map('n', '<leader>p', '<C-w>p', { desc = 'Focus previous window' })
-map('n', '<C-h>', '<C-w>h', { desc = 'Go to left split' })
-map('n', '<C-j>', '<C-w>j', { desc = 'Go to lower split' })
-map('n', '<C-k>', '<C-w>k', { desc = 'Go to upper split' })
-map('n', '<C-l>', '<C-w>l', { desc = 'Go to right split' })
+map('n', '<C-h>', '<C-w>h', { desc = 'Left split' })
+map('n', '<C-j>', '<C-w>j', { desc = 'Lower split' })
+map('n', '<C-k>', '<C-w>k', { desc = 'Upper split' })
+map('n', '<C-l>', '<C-w>l', { desc = 'Right split' })
 
--- Fast split resizing with Shift+Arrows
-map('n', '<S-Up>', ':resize +2<CR>', { silent = true, desc = 'Increase height' })
-map('n', '<S-Down>', ':resize -2<CR>', { silent = true, desc = 'Decrease height' })
-map('n', '<S-Left>', ':vertical resize -4<CR>', { silent = true, desc = 'Narrower' })
-map('n', '<S-Right>', ':vertical resize +4<CR>', { silent = true, desc = 'Wider' })
+-- Resize
+map('n', '<S-Up>', ':resize +2<CR>', { silent = true })
+map('n', '<S-Down>', ':resize -2<CR>', { silent = true })
+map('n', '<S-Left>', ':vertical resize -4<CR>', { silent = true })
+map('n', '<S-Right>', ':vertical resize +4<CR>', { silent = true })
 
 ------------------------------------------------------------
--- 6) Small Quality-of-life Commands
+-- 6) Helper Logic
 ------------------------------------------------------------
--- Quit helper if last window is Neo-tree
+-- Quit if last window is Neo-tree
 vim.api.nvim_create_autocmd('BufEnter', {
 	pattern = '*',
 	callback = function()
@@ -351,62 +327,44 @@ vim.api.nvim_create_autocmd('BufEnter', {
 	end
 })
 
-------------------------------------------------------------
--- 7) Smarter <leader>e for Neo-tree
---    - If Neo-tree is focused: jump to the rightmost non–Neo-tree window
---    - If Neo-tree is open but not focused: focus it
---    - If Neo-tree is closed: open it
-------------------------------------------------------------
+-- Smarter Neo-tree toggle
 local function smart_neotree()
 	local current_win = vim.api.nvim_get_current_win()
 	local current_buf = vim.api.nvim_win_get_buf(current_win)
 	local current_ft  = vim.bo[current_buf].filetype
 
-	-- Find the rightmost non-floating, non-neo-tree window
 	local function rightmost_editor_win()
 		local best_win, best_col = nil, -1
 		for _, win in ipairs(vim.api.nvim_list_wins()) do
 			local cfg = vim.api.nvim_win_get_config(win)
-			-- skip floats
-			if not cfg.relative or cfg.relative == "" then
+			if (not cfg.relative or cfg.relative == "") then
 				local buf = vim.api.nvim_win_get_buf(win)
 				local ft  = vim.bo[buf].filetype
 				if ft ~= "neo-tree" then
-					local pos = vim.api.nvim_win_get_position(win) -- {row, col}
+					local pos = vim.api.nvim_win_get_position(win)
 					local col = pos and pos[2] or -1
-					if col > best_col then
-						best_col, best_win = col, win
-					end
+					if col > best_col then best_col, best_win = col, win end
 				end
 			end
 		end
 		return best_win
 	end
 
-	-- If neo-tree is focused, hop to rightmost editor window
 	if current_ft == 'neo-tree' then
 		local target = rightmost_editor_win()
-		if target then
-			vim.api.nvim_set_current_win(target)
-		end
+		if target then vim.api.nvim_set_current_win(target) end
 		return
 	end
 
-	-- Otherwise: if there is a neo-tree window, focus it; if not, open it
 	for _, win in ipairs(vim.api.nvim_list_wins()) do
 		local buf = vim.api.nvim_win_get_buf(win)
-		local ft  = vim.bo[buf].filetype
-		if ft == 'neo-tree' then
-			if win ~= current_win then
-				vim.api.nvim_set_current_win(win)
-			end
+		if vim.bo[buf].filetype == 'neo-tree' then
+			vim.api.nvim_set_current_win(win)
 			return
 		end
 	end
 
-	-- No neo-tree open: open it
 	vim.cmd('Neotree toggle')
 end
 
--- Override the earlier mapping from the Neo-tree setup
-vim.keymap.set('n', '<leader>e', smart_neotree, { desc = 'Neo-tree: focus/open; if focused → jump rightmost' })
+map('n', '<leader>e', smart_neotree, { desc = 'Neo-tree smart toggle' })
