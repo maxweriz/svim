@@ -1,6 +1,6 @@
 -- ~/.config/nvim/init.lua
 -- Complete Neovim config with: lazy.nvim bootstrap, Neo-tree, Telescope, Treesitter,
--- LSP, cmp, lualine, bufferline, gitsigns, Sonoran Sun theme, Conform formatting, 
+-- LSP, cmp, lualine, bufferline, gitsigns, Sonoran Sun theme, Conform formatting,
 -- terminal QoL, and enhanced editing/UI plugins.
 
 ------------------------------------------------------------
@@ -34,10 +34,10 @@ vim.opt.splitright = true
 ------------------------------------------------------------
 local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
-    vim.fn.system({
-        'git', 'clone', '--filter=blob:none',
-        'https://github.com/folke/lazy.nvim.git', '--branch=stable', lazypath
-    })
+	vim.fn.system({
+		'git', 'clone', '--filter=blob:none',
+		'https://github.com/folke/lazy.nvim.git', '--branch=stable', lazypath
+	})
 end
 vim.opt.rtp:prepend(lazypath)
 
@@ -45,118 +45,135 @@ vim.opt.rtp:prepend(lazypath)
 -- 2) Plugins (managed by lazy.nvim)
 ------------------------------------------------------------
 require('lazy').setup({
-    -- UI niceties
-    { 'nvim-lualine/lualine.nvim', dependencies = { 'nvim-tree/nvim-web-devicons' } },
-    { 'akinsho/bufferline.nvim', version = "*", dependencies = 'nvim-tree/nvim-web-devicons' },
-    { 'lewis6991/gitsigns.nvim' },
-    
-    -- New UI Enhancements (opts = {} handles setup cleanly)
-    { 'lukas-reineke/indent-blankline.nvim', main = 'ibl', opts = {} },
-    { 'stevearc/dressing.nvim', event = 'VeryLazy', opts = {} },
+	-- UI niceties
+	{ 'nvim-lualine/lualine.nvim',           dependencies = { 'nvim-tree/nvim-web-devicons' } },
+	{ 'akinsho/bufferline.nvim',             version = "*",                                   dependencies = 'nvim-tree/nvim-web-devicons' },
+	{ 'lewis6991/gitsigns.nvim' },
 
-    -- Themes
-    { 'catppuccin/nvim', name = 'catppuccin' },
+	-- New UI Enhancements (opts = {} handles setup cleanly)
+	{ 'lukas-reineke/indent-blankline.nvim', main = 'ibl',                                    opts = {} },
+	{ 'stevearc/dressing.nvim',              event = 'VeryLazy',                              opts = {} },
 
-    -- File explorer: Neo-tree
-    {
-        'nvim-neo-tree/neo-tree.nvim',
-        branch = 'v3.x',
-        dependencies = {
-            'nvim-lua/plenary.nvim',
-            'nvim-tree/nvim-web-devicons',
-            'MunifTanjim/nui.nvim',
-        },
-        init = function()
-            vim.g.loaded_netrw = 1
-            vim.g.loaded_netrwPlugin = 1
-        end,
-        config = function()
-            require('neo-tree').setup({
-                sources = { 'filesystem', 'buffers', 'git_status', 'document_symbols' },
-                close_if_last_window = true,
-                filesystem = {
-                    follow_current_file = { enabled = true },
-                    use_libuv_file_watcher = true,
-                    filtered_items = {
-                        visible = false,
-                        hide_dotfiles = false,
-                        hide_gitignored = true,
-                    },
-                },
-                window = {
-                    width = 34,
-                    mappings = {
-                        ['<space>'] = 'toggle_node',
-                        ['l'] = 'open',
-                        ['h'] = 'close_node',
-                    },
-                },
-            })
-        end,
-    },
+	-- Themes
+	{ 'catppuccin/nvim',                     name = 'catppuccin' },
 
-    -- Telescope (fuzzy finding)
-    { 'nvim-telescope/telescope.nvim', dependencies = { 'nvim-lua/plenary.nvim' } },
+	-- File explorer: Neo-tree
+	{
+		'nvim-neo-tree/neo-tree.nvim',
+		branch = 'v3.x',
+		dependencies = {
+			'nvim-lua/plenary.nvim',
+			'nvim-tree/nvim-web-devicons',
+			'MunifTanjim/nui.nvim',
+		},
+		init = function()
+			vim.g.loaded_netrw = 1
+			vim.g.loaded_netrwPlugin = 1
+		end,
+		config = function()
+			require('neo-tree').setup({
+				sources = { 'filesystem', 'buffers', 'git_status', 'document_symbols' },
+				close_if_last_window = true,
+				filesystem = {
+					follow_current_file = { enabled = true },
+					use_libuv_file_watcher = true,
+					filtered_items = {
+						visible = false,
+						hide_dotfiles = false,
+						hide_gitignored = true,
+					},
+				},
+				window = {
+					width = 34,
+					mappings = {
+						['<space>'] = 'toggle_node',
+						['l'] = 'open',
+						['h'] = 'close_node',
+					},
+				},
+			})
+		end,
+	},
 
-    -- Treesitter
-    { 'nvim-treesitter/nvim-treesitter', build = ':TSUpdate' },
+	-- Telescope (fuzzy finding)
+	{ 'nvim-telescope/telescope.nvim',            dependencies = { 'nvim-lua/plenary.nvim' } },
 
-    -- LSP + Mason + Completion
-    { 'neovim/nvim-lspconfig' },
-    { 'williamboman/mason.nvim' },
-    { 'williamboman/mason-lspconfig.nvim' },
+	-- Treesitter
+	{ 'nvim-treesitter/nvim-treesitter',          build = ':TSUpdate' },
 
-    -- Autocompletion
-    { 'hrsh7th/nvim-cmp' },
-    { 'hrsh7th/cmp-nvim-lsp' },
-    { 'hrsh7th/cmp-buffer' },
-    { 'hrsh7th/cmp-path' },
-    { 'L3MON4D3/LuaSnip' },
-    { 'saadparwaiz1/cmp_luasnip' },
+	-- LSP + Mason + Completion
+	{ 'neovim/nvim-lspconfig' },
+	{ 'williamboman/mason.nvim' },
+	{ 'williamboman/mason-lspconfig.nvim' },
 
-    -- New Editing Enhancements
-    { 'windwp/nvim-autopairs', opts = { check_ts = true } },
-    { 'kylechui/nvim-surround', version = "*", event = "VeryLazy", opts = {} },
+	-- Autocompletion
+	{ 'hrsh7th/nvim-cmp' },
+	{ 'hrsh7th/cmp-nvim-lsp' },
+	{ 'hrsh7th/cmp-buffer' },
+	{ 'hrsh7th/cmp-path' },
+	{ 'L3MON4D3/LuaSnip' },
+	{ 'saadparwaiz1/cmp_luasnip' },
 
-    -- New Workflow & Diagnostics
-    { 'folke/trouble.nvim', dependencies = { 'nvim-tree/nvim-web-devicons' }, opts = {} },
-    { 'folke/todo-comments.nvim', dependencies = { 'nvim-lua/plenary.nvim' }, opts = {} },
+	-- New Editing Enhancements
+	{ 'windwp/nvim-autopairs',                    opts = { check_ts = true } },
+	{ 'kylechui/nvim-surround',                   version = "*",                                    event = "VeryLazy", opts = {} },
 
-    -- Which-key (discoverability)
-    { 'folke/which-key.nvim' },
+	-- New Workflow & Diagnostics
+	{ 'folke/trouble.nvim',                       dependencies = { 'nvim-tree/nvim-web-devicons' }, opts = {} },
+	{ 'folke/todo-comments.nvim',                 dependencies = { 'nvim-lua/plenary.nvim' },       opts = {} },
 
-    -- Formatting
-    { 'stevearc/conform.nvim' },
+	-- Which-key (discoverability)
+	{ 'folke/which-key.nvim' },
 
-    -- Auto-install external tools
-    { 'WhoIsSethDaniel/mason-tool-installer.nvim' },
+	-- Formatting
+	{ 'stevearc/conform.nvim' },
 
-    -- Copilot
-    { 'github/copilot.vim' }
+	-- Auto-install external tools
+	{ 'WhoIsSethDaniel/mason-tool-installer.nvim' },
+
+	-- Copilot
+	{ 'github/copilot.vim' }
 }, {
-    ui = { border = 'rounded' },
+	ui = { border = 'rounded' },
 })
 
 ------------------------------------------------------------
 -- 3) Plugin Config
 ------------------------------------------------------------
--- Theme
-vim.g.sonoran_sun_variant = "hot"
-pcall(vim.cmd.colorscheme, "sonoran-day")
+
+-- Cosmic Theme Setup
+vim.o.background = "dark" -- Default to Black Hole (dark mode)
+pcall(vim.cmd.colorscheme, "cosmic")
+
+-- Custom Command to toggle between Super Nova and Black Hole
+vim.api.nvim_create_user_command('ToggleCosmic', function()
+	if vim.o.background == 'dark' then
+		vim.o.background = 'light'
+		print("Super Nova Engaged ☀️")
+	else
+		vim.o.background = 'dark'
+		print("Black Hole Engaged 🕳️")
+	end
+	-- Re-apply the colorscheme to trigger the logic in cosmic.lua
+	vim.cmd('colorscheme cosmic')
+end, {})
+
+-- Keymap to toggle the theme easily
+map('n', '<leader>tc', '<cmd>ToggleCosmic<CR>', { desc = 'Toggle Cosmic Theme' })
 
 -- Bufferline Configuration
 require("bufferline").setup({
-    options = {
-        mode = "buffers",
-        offsets = {
-            {
-                filetype = "neo-tree",
-                text = "File Explorer",
-                text_align = "left",
-                separator = true
-            }
-        },
-    }
+	options = {
+		mode = "buffers",
+		offsets = {
+			{
+				filetype = "neo-tree",
+				text = "File Explorer",
+				text_align = "left",
+				separator = true
+			}
+		},
+	}
 })
 
 -- Bufferline Keymaps
@@ -182,13 +199,13 @@ map('n', '<leader>fh', '<cmd>Telescope help_tags<CR>', { desc = 'Help' })
 
 -- Treesitter
 require('nvim-treesitter.configs').setup({
-    ensure_installed = {
-        'lua', 'vim', 'vimdoc', 'query', 'bash', 'python', 'json',
-        'yaml', 'markdown', 'markdown_inline', 'javascript', 'typescript',
-        'tsx', 'html', 'css', 'rust'
-    },
-    highlight = { enable = true },
-    indent = { enable = true },
+	ensure_installed = {
+		'lua', 'vim', 'vimdoc', 'query', 'bash', 'python', 'json',
+		'yaml', 'markdown', 'markdown_inline', 'javascript', 'typescript',
+		'tsx', 'html', 'css', 'rust'
+	},
+	highlight = { enable = true },
+	indent = { enable = true },
 })
 
 -- Which-key
@@ -199,21 +216,21 @@ require('which-key').setup({})
 ------------------------------------------------------------
 
 vim.diagnostic.config({
-    virtual_text = { prefix = '●' },
-    update_in_insert = false,
-    underline = true,
-    float = { border = 'rounded', source = 'always', header = '', prefix = '' },
+	virtual_text = { prefix = '●' },
+	update_in_insert = false,
+	underline = true,
+	float = { border = 'rounded', source = 'always', header = '', prefix = '' },
 })
 
 require('mason').setup()
 require('mason-lspconfig').setup({
-    ensure_installed = { 'pyright', 'lua_ls', 'rust_analyzer', 'starpls' },
+	ensure_installed = { 'pyright', 'lua_ls', 'rust_analyzer', 'starpls' },
 })
 
 require('mason-tool-installer').setup({
-    ensure_installed = { 'buildifier' },
-    auto_update = false,
-    run_on_start = true,
+	ensure_installed = { 'buildifier' },
+	auto_update = false,
+	run_on_start = true,
 })
 
 -- nvim-cmp setup
@@ -221,64 +238,64 @@ local cmp = require('cmp')
 local luasnip = require('luasnip')
 
 cmp.setup({
-    snippet = { expand = function(args) luasnip.lsp_expand(args.body) end },
-    window = {
-        completion = cmp.config.window.bordered(),
-        documentation = cmp.config.window.bordered(),
-    },
-    mapping = cmp.mapping.preset.insert({
-        ['<C-Space>'] = cmp.mapping.complete(),
-        ['<CR>']      = cmp.mapping.confirm({ select = true }),
-        ['<Tab>']     = function(fallback)
-            if cmp.visible() then
-                cmp.select_next_item()
-            elseif luasnip.expand_or_jumpable() then
-                luasnip.expand_or_jump()
-            else
-                fallback()
-            end
-        end,
-        ['<S-Tab>']   = function(fallback)
-            if cmp.visible() then
-                cmp.select_prev_item()
-            elseif luasnip.jumpable(-1) then
-                luasnip.jump(-1)
-            else
-                fallback()
-            end
-        end,
-    }),
-    sources = { { name = 'nvim_lsp' }, { name = 'path' }, { name = 'buffer' }, { name = 'luasnip' } },
+	snippet = { expand = function(args) luasnip.lsp_expand(args.body) end },
+	window = {
+		completion = cmp.config.window.bordered(),
+		documentation = cmp.config.window.bordered(),
+	},
+	mapping = cmp.mapping.preset.insert({
+		['<C-Space>'] = cmp.mapping.complete(),
+		['<CR>']      = cmp.mapping.confirm({ select = true }),
+		['<Tab>']     = function(fallback)
+			if cmp.visible() then
+				cmp.select_next_item()
+			elseif luasnip.expand_or_jumpable() then
+				luasnip.expand_or_jump()
+			else
+				fallback()
+			end
+		end,
+		['<S-Tab>']   = function(fallback)
+			if cmp.visible() then
+				cmp.select_prev_item()
+			elseif luasnip.jumpable(-1) then
+				luasnip.jump(-1)
+			else
+				fallback()
+			end
+		end,
+	}),
+	sources = { { name = 'nvim_lsp' }, { name = 'path' }, { name = 'buffer' }, { name = 'luasnip' } },
 })
 
 -- Integrate Autopairs with CMP safely
 pcall(function()
-    local cmp_autopairs = require('nvim-autopairs.completion.cmp')
-    cmp.event:on('confirm_done', cmp_autopairs.on_confirm_done())
+	local cmp_autopairs = require('nvim-autopairs.completion.cmp')
+	cmp.event:on('confirm_done', cmp_autopairs.on_confirm_done())
 end)
 
 local capabilities = require('cmp_nvim_lsp').default_capabilities()
 
 local function on_attach(_, bufnr)
-    local bmap = function(mode, lhs, rhs, desc)
-        vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, desc = 'LSP: ' .. desc })
-    end
-    bmap('n', 'gd', vim.lsp.buf.definition, 'Goto Definition')
-    bmap('n', 'gr', require('telescope.builtin').lsp_references, 'References')
-    bmap('n', 'K', vim.lsp.buf.hover, 'Hover Documentation')
-    bmap('n', '<leader>rn', vim.lsp.buf.rename, 'Rename')
-    bmap('n', '<leader>ca', vim.lsp.buf.code_action, 'Code Action')
-    bmap('n', '<leader>d', vim.diagnostic.open_float, 'Show Line Diagnostics')
-    bmap('n', '<leader>sd', require('telescope.builtin').diagnostics, 'Search Diagnostics')
+	local bmap = function(mode, lhs, rhs, desc)
+		vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, desc = 'LSP: ' .. desc })
+	end
+	bmap('n', 'gd', vim.lsp.buf.definition, 'Goto Definition')
+	bmap('n', 'gr', require('telescope.builtin').lsp_references, 'References')
+	bmap('n', 'K', vim.lsp.buf.hover, 'Hover Documentation')
+	bmap('n', '<leader>rn', vim.lsp.buf.rename, 'Rename')
+	bmap('n', '<leader>ca', vim.lsp.buf.code_action, 'Code Action')
+	bmap('n', '<leader>d', vim.diagnostic.open_float, 'Show Line Diagnostics')
+	bmap('n', '<leader>sd', require('telescope.builtin').diagnostics, 'Search Diagnostics')
 end
 
 vim.lsp.config['pyright'] = { capabilities = capabilities, on_attach = on_attach }
 vim.lsp.config['rust_analyzer'] = { capabilities = capabilities, on_attach = on_attach }
 vim.lsp.config['starpls'] = { capabilities = capabilities, on_attach = on_attach, cmd = { 'starpls' }, filetypes = { 'bzl', 'bazel' } }
 vim.lsp.config['lua_ls'] = {
-    capabilities = capabilities,
-    on_attach = on_attach,
-    settings = { Lua = { diagnostics = { globals = { 'vim' } }, workspace = { checkThirdParty = false } } },
+	capabilities = capabilities,
+	on_attach = on_attach,
+	settings = { Lua = { diagnostics = { globals = { 'vim' } }, workspace = { checkThirdParty = false } } },
 }
 
 vim.lsp.enable({ 'pyright', 'lua_ls', 'rust_analyzer', 'starpls' })
@@ -287,12 +304,12 @@ vim.lsp.enable({ 'pyright', 'lua_ls', 'rust_analyzer', 'starpls' })
 -- 4.1) Formatting via Conform
 ------------------------------------------------------------
 require('conform').setup({
-    formatters_by_ft = {
-        bzl   = { 'buildifier' },
-        bazel = { 'buildifier' },
-        rust  = { 'rustfmt' },
-    },
-    format_on_save = { lsp_fallback = true, timeout_ms = 1000 },
+	formatters_by_ft = {
+		bzl   = { 'buildifier' },
+		bazel = { 'buildifier' },
+		rust  = { 'rustfmt' },
+	},
+	format_on_save = { lsp_fallback = true, timeout_ms = 1000 },
 })
 
 ------------------------------------------------------------
@@ -300,27 +317,27 @@ require('conform').setup({
 ------------------------------------------------------------
 -- Auto-enter insert mode
 vim.api.nvim_create_autocmd('TermOpen', {
-    pattern = '*',
-    callback = function()
-        vim.cmd('startinsert')
-        vim.opt_local.number = false
-        vim.opt_local.relativenumber = false
-    end,
+	pattern = '*',
+	callback = function()
+		vim.cmd('startinsert')
+		vim.opt_local.number = false
+		vim.opt_local.relativenumber = false
+	end,
 })
 
 map('t', '<Esc>', [[<C-\><C-n>]], { desc = 'Exit terminal mode' })
 
 -- Robust Terminal Opening
 map('n', '<leader>h', function()
-    local shell_path = vim.env.SHELL or vim.o.shell
-    vim.cmd('belowright 12split | enew')
-    vim.fn.termopen({ shell_path, "-l" })
+	local shell_path = vim.env.SHELL or vim.o.shell
+	vim.cmd('belowright 12split | enew')
+	vim.fn.termopen({ shell_path, "-l" })
 end, { desc = 'Horizontal terminal' })
 
 map('n', '<leader>v', function()
-    local shell_path = vim.env.SHELL or vim.o.shell
-    vim.cmd('vsplit | enew')
-    vim.fn.termopen({ shell_path, "-l" })
+	local shell_path = vim.env.SHELL or vim.o.shell
+	vim.cmd('vsplit | enew')
+	vim.fn.termopen({ shell_path, "-l" })
 end, { desc = 'Vertical terminal' })
 
 -- Navigation
@@ -341,52 +358,52 @@ map('n', '<S-Right>', ':vertical resize +4<CR>', { silent = true })
 ------------------------------------------------------------
 -- Quit if last window is Neo-tree
 vim.api.nvim_create_autocmd('BufEnter', {
-    pattern = '*',
-    callback = function()
-        if vim.bo.filetype == 'neo-tree' and #vim.api.nvim_list_wins() == 1 then
-            vim.cmd('quit')
-        end
-    end
+	pattern = '*',
+	callback = function()
+		if vim.bo.filetype == 'neo-tree' and #vim.api.nvim_list_wins() == 1 then
+			vim.cmd('quit')
+		end
+	end
 })
 
 -- Smarter Neo-tree toggle
 local function smart_neotree()
-    local current_win = vim.api.nvim_get_current_win()
-    local current_buf = vim.api.nvim_win_get_buf(current_win)
-    local current_ft  = vim.bo[current_buf].filetype
+	local current_win = vim.api.nvim_get_current_win()
+	local current_buf = vim.api.nvim_win_get_buf(current_win)
+	local current_ft  = vim.bo[current_buf].filetype
 
-    local function rightmost_editor_win()
-        local best_win, best_col = nil, -1
-        for _, win in ipairs(vim.api.nvim_list_wins()) do
-            local cfg = vim.api.nvim_win_get_config(win)
-            if (not cfg.relative or cfg.relative == "") then
-                local buf = vim.api.nvim_win_get_buf(win)
-                local ft  = vim.bo[buf].filetype
-                if ft ~= "neo-tree" then
-                    local pos = vim.api.nvim_win_get_position(win)
-                    local col = pos and pos[2] or -1
-                    if col > best_col then best_col, best_win = col, win end
-                end
-            end
-        end
-        return best_win
-    end
+	local function rightmost_editor_win()
+		local best_win, best_col = nil, -1
+		for _, win in ipairs(vim.api.nvim_list_wins()) do
+			local cfg = vim.api.nvim_win_get_config(win)
+			if (not cfg.relative or cfg.relative == "") then
+				local buf = vim.api.nvim_win_get_buf(win)
+				local ft  = vim.bo[buf].filetype
+				if ft ~= "neo-tree" then
+					local pos = vim.api.nvim_win_get_position(win)
+					local col = pos and pos[2] or -1
+					if col > best_col then best_col, best_win = col, win end
+				end
+			end
+		end
+		return best_win
+	end
 
-    if current_ft == 'neo-tree' then
-        local target = rightmost_editor_win()
-        if target then vim.api.nvim_set_current_win(target) end
-        return
-    end
+	if current_ft == 'neo-tree' then
+		local target = rightmost_editor_win()
+		if target then vim.api.nvim_set_current_win(target) end
+		return
+	end
 
-    for _, win in ipairs(vim.api.nvim_list_wins()) do
-        local buf = vim.api.nvim_win_get_buf(win)
-        if vim.bo[buf].filetype == 'neo-tree' then
-            vim.api.nvim_set_current_win(win)
-            return
-        end
-    end
+	for _, win in ipairs(vim.api.nvim_list_wins()) do
+		local buf = vim.api.nvim_win_get_buf(win)
+		if vim.bo[buf].filetype == 'neo-tree' then
+			vim.api.nvim_set_current_win(win)
+			return
+		end
+	end
 
-    vim.cmd('Neotree toggle')
+	vim.cmd('Neotree toggle')
 end
 
 map('n', '<leader>e', smart_neotree, { desc = 'Neo-tree smart toggle' })
