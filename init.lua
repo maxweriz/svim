@@ -1,6 +1,7 @@
 -- ~/.config/nvim/init.lua
 -- Complete Neovim config with: lazy.nvim bootstrap, Neo-tree, Telescope, Treesitter,
--- LSP, cmp, lualine, gitsigns, Sonoran Sun theme, Conform formatting, and terminal QoL.
+-- LSP, cmp, lualine, bufferline, gitsigns, Sonoran Sun theme, Conform formatting,
+-- terminal QoL, and enhanced editing/UI plugins.
 
 ------------------------------------------------------------
 -- 0) Leader & Basic Options
@@ -32,7 +33,6 @@ vim.opt.splitright = true
 -- 1) Bootstrap lazy.nvim
 ------------------------------------------------------------
 local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
--- Note: vim.loop is deprecated in 0.10+, replaced by vim.uv
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
 	vim.fn.system({
 		'git', 'clone', '--filter=blob:none',
@@ -46,11 +46,16 @@ vim.opt.rtp:prepend(lazypath)
 ------------------------------------------------------------
 require('lazy').setup({
 	-- UI niceties
-	{ 'nvim-lualine/lualine.nvim', dependencies = { 'nvim-tree/nvim-web-devicons' } },
+	{ 'nvim-lualine/lualine.nvim',           dependencies = { 'nvim-tree/nvim-web-devicons' } },
+	{ 'akinsho/bufferline.nvim',             version = "*",                                   dependencies = 'nvim-tree/nvim-web-devicons' },
 	{ 'lewis6991/gitsigns.nvim' },
 
+	-- New UI Enhancements (opts = {} handles setup cleanly)
+	{ 'lukas-reineke/indent-blankline.nvim', main = 'ibl',                                    opts = {} },
+	{ 'stevearc/dressing.nvim',              event = 'VeryLazy',                              opts = {} },
+
 	-- Themes
-	{ 'catppuccin/nvim',           name = 'catppuccin' },
+	{ 'catppuccin/nvim',                     name = 'catppuccin' },
 
 	-- File explorer: Neo-tree
 	{
@@ -109,13 +114,21 @@ require('lazy').setup({
 	{ 'L3MON4D3/LuaSnip' },
 	{ 'saadparwaiz1/cmp_luasnip' },
 
+	-- New Editing Enhancements
+	{ 'windwp/nvim-autopairs',                    opts = { check_ts = true } },
+	{ 'kylechui/nvim-surround',                   version = "*",                                    event = "VeryLazy", opts = {} },
+
+	-- New Workflow & Diagnostics
+	{ 'folke/trouble.nvim',                       dependencies = { 'nvim-tree/nvim-web-devicons' }, opts = {} },
+	{ 'folke/todo-comments.nvim',                 dependencies = { 'nvim-lua/plenary.nvim' },       opts = {} },
+
 	-- Which-key (discoverability)
 	{ 'folke/which-key.nvim' },
 
 	-- Formatting
 	{ 'stevearc/conform.nvim' },
 
-	-- Auto-install external tools (formatters/linters)
+	-- Auto-install external tools
 	{ 'WhoIsSethDaniel/mason-tool-installer.nvim' },
 
 	-- Copilot
@@ -127,14 +140,53 @@ require('lazy').setup({
 ------------------------------------------------------------
 -- 3) Plugin Config
 ------------------------------------------------------------
--- Theme
-vim.g.sonoran_sun_variant = "hot"
--- If sonoran-day is not installed, this will error.
--- Ensure you have the plugin or fallback to catppuccin.
-pcall(vim.cmd.colorscheme, "sonoran-day")
 
--- Lualine
+-- Cosmic Theme Setup
+vim.o.background = "dark" -- Default to Black Hole (dark mode)
+pcall(vim.cmd.colorscheme, "cosmic")
+
+-- Custom Command to toggle between Super Nova and Black Hole
+vim.api.nvim_create_user_command('ToggleCosmic', function()
+	if vim.o.background == 'dark' then
+		vim.o.background = 'light'
+		print("Super Nova Engaged ☀️")
+	else
+		vim.o.background = 'dark'
+		print("Black Hole Engaged 🕳️")
+	end
+	-- Re-apply the colorscheme to trigger the logic in cosmic.lua
+	vim.cmd('colorscheme cosmic')
+end, {})
+
+-- Keymap to toggle the theme easily
+map('n', '<leader>tc', '<cmd>ToggleCosmic<CR>', { desc = 'Toggle Cosmic Theme' })
+
+-- Bufferline Configuration
+require("bufferline").setup({
+	options = {
+		mode = "buffers",
+		offsets = {
+			{
+				filetype = "neo-tree",
+				text = "File Explorer",
+				text_align = "left",
+				separator = true
+			}
+		},
+	}
+})
+
+-- Bufferline Keymaps
+map('n', '<S-h>', '<cmd>BufferLineCyclePrev<CR>', { desc = 'Previous buffer' })
+map('n', '<S-l>', '<cmd>BufferLineCycleNext<CR>', { desc = 'Next buffer' })
+map('n', '<leader>x', '<cmd>bdelete<CR>', { desc = 'Close current buffer' })
+
+-- UI Plugins
 require('lualine').setup({ options = { theme = 'auto', globalstatus = true } })
+
+-- Trouble & Todo Keymaps
+map('n', '<leader>xx', '<cmd>Trouble diagnostics toggle<CR>', { desc = 'Toggle Trouble Diagnostics' })
+map('n', '<leader>st', '<cmd>TodoTelescope<CR>', { desc = 'Search TODOs' })
 
 -- Gitsigns
 require('gitsigns').setup()
@@ -160,31 +212,15 @@ require('nvim-treesitter.configs').setup({
 require('which-key').setup({})
 
 ------------------------------------------------------------
--- 4) LSP Configuration & UI Overlap Fix
+-- 4) LSP Configuration
 ------------------------------------------------------------
 
--- FIX: Configure Diagnostics to not overlap text automatically
 vim.diagnostic.config({
-	-- Show "ghost text" at the end of the line (non-intrusive)
-	virtual_text = {
-		prefix = '●', -- Could use '■', '▎', 'x'
-	},
-	-- Don't update while typing (reduces noise)
+	virtual_text = { prefix = '●' },
 	update_in_insert = false,
-	-- Enable underline
 	underline = true,
-	-- FIX: Configure the floating window
-	float = {
-		border = 'rounded',
-		source = 'always',
-		header = '',
-		prefix = '',
-	},
+	float = { border = 'rounded', source = 'always', header = '', prefix = '' },
 })
-
--- We do NOT add a CursorHold autocommand here.
--- This prevents the popup from blocking your view automatically.
--- Instead, use <leader>d (configured below) to see the full message.
 
 require('mason').setup()
 require('mason-lspconfig').setup({
@@ -232,6 +268,12 @@ cmp.setup({
 	sources = { { name = 'nvim_lsp' }, { name = 'path' }, { name = 'buffer' }, { name = 'luasnip' } },
 })
 
+-- Integrate Autopairs with CMP safely
+pcall(function()
+	local cmp_autopairs = require('nvim-autopairs.completion.cmp')
+	cmp.event:on('confirm_done', cmp_autopairs.on_confirm_done())
+end)
+
 local capabilities = require('cmp_nvim_lsp').default_capabilities()
 
 local function on_attach(_, bufnr)
@@ -243,7 +285,6 @@ local function on_attach(_, bufnr)
 	bmap('n', 'K', vim.lsp.buf.hover, 'Hover Documentation')
 	bmap('n', '<leader>rn', vim.lsp.buf.rename, 'Rename')
 	bmap('n', '<leader>ca', vim.lsp.buf.code_action, 'Code Action')
-	-- FIX: Open the diagnostic float manually
 	bmap('n', '<leader>d', vim.diagnostic.open_float, 'Show Line Diagnostics')
 	bmap('n', '<leader>sd', require('telescope.builtin').diagnostics, 'Search Diagnostics')
 end
@@ -272,7 +313,7 @@ require('conform').setup({
 })
 
 ------------------------------------------------------------
--- 5) Terminal QoL (FIXED)
+-- 5) Terminal QoL
 ------------------------------------------------------------
 -- Auto-enter insert mode
 vim.api.nvim_create_autocmd('TermOpen', {
@@ -286,18 +327,16 @@ vim.api.nvim_create_autocmd('TermOpen', {
 
 map('t', '<Esc>', [[<C-\><C-n>]], { desc = 'Exit terminal mode' })
 
--- FIX: Robust Terminal Opening using termopen + enew
+-- Robust Terminal Opening
 map('n', '<leader>h', function()
 	local shell_path = vim.env.SHELL or vim.o.shell
-	vim.cmd('belowright 12split')
-	vim.cmd('enew') -- Force new buffer to avoid Neo-tree conflicts
+	vim.cmd('belowright 12split | enew')
 	vim.fn.termopen({ shell_path, "-l" })
 end, { desc = 'Horizontal terminal' })
 
 map('n', '<leader>v', function()
 	local shell_path = vim.env.SHELL or vim.o.shell
-	vim.cmd('vsplit')
-	vim.cmd('enew')
+	vim.cmd('vsplit | enew')
 	vim.fn.termopen({ shell_path, "-l" })
 end, { desc = 'Vertical terminal' })
 
