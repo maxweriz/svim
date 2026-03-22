@@ -99,7 +99,10 @@ require('lazy').setup({
 	{ 'nvim-telescope/telescope.nvim',            dependencies = { 'nvim-lua/plenary.nvim' } },
 
 	-- Treesitter
-	{ 'nvim-treesitter/nvim-treesitter',          build = ':TSUpdate' },
+	{
+		"nvim-treesitter/nvim-treesitter",
+		build = ":TSUpdate",
+	},
 
 	-- LSP + Mason + Completion
 	{ 'neovim/nvim-lspconfig' },
@@ -198,14 +201,12 @@ map('n', '<leader>fb', '<cmd>Telescope buffers<CR>', { desc = 'Buffers' })
 map('n', '<leader>fh', '<cmd>Telescope help_tags<CR>', { desc = 'Help' })
 
 -- Treesitter
-require('nvim-treesitter.configs').setup({
+require('nvim-treesitter').setup({
 	ensure_installed = {
 		'lua', 'vim', 'vimdoc', 'query', 'bash', 'python', 'json',
 		'yaml', 'markdown', 'markdown_inline', 'javascript', 'typescript',
-		'tsx', 'html', 'css', 'rust'
-	},
+		'tsx', 'html', 'css', 'rust' },
 	highlight = { enable = true },
-	indent = { enable = true },
 })
 
 -- Which-key
@@ -407,3 +408,15 @@ local function smart_neotree()
 end
 
 map('n', '<leader>e', smart_neotree, { desc = 'Neo-tree smart toggle' })
+
+------------------------------------------------------------
+-- Custom Commands
+------------------------------------------------------------
+vim.api.nvim_create_user_command("NovaToggle", function()
+	if vim.o.background == "dark" then
+		vim.o.background = "light"
+	else
+		vim.o.background = "dark"
+	end
+	vim.cmd("colorscheme nova")
+end, { desc = "Toggle Neovim Nova between dark and light themes" })
